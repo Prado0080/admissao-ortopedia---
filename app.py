@@ -24,9 +24,19 @@ def extrair_info(texto):
     # Data da fratura
     data_fratura = re.search(r'DATA DA FRATURA:\s+(\d{2}/\d{2}/\d{4})', texto)
 
-    # Datas da cirurgia (pegar todas)
-    datas_cirurgia = re.findall(r'DATA DA CIRURGIA:\s+(\d{2}/\d{2}/\d{4})', texto)
-    datas_cirurgia_texto = ", ".join(datas_cirurgia) if datas_cirurgia else "-"
+    # Datas da cirurgia com nome do médico (se houver)
+    cirurgia_matches = re.findall(r'DATA DA CIRURGIA:\s+(\d{2}/\d{2}/\d{4})(?:\s+\((.*?)\))?', texto)
+    if cirurgia_matches:
+        datas_cirurgia_texto = []
+        for data, medico in cirurgia_matches:
+            if medico:
+                medico_formatado = "Dr. " + medico.strip().capitalize().replace("dr. ", "").replace("dr ", "")
+                datas_cirurgia_texto.append(f"{data} ({medico_formatado})")
+            else:
+                datas_cirurgia_texto.append(data)
+        datas_cirurgia_texto = ", ".join(datas_cirurgia_texto)
+    else:
+        datas_cirurgia_texto = "-"
 
     # Datas atuais
     hoje = datetime.today().strftime('%d/%m/%Y')
