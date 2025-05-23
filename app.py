@@ -13,7 +13,14 @@ def extrair_info(texto):
     idade = re.search(r'Idade:\s+(\d+)', texto)
     peso = re.search(r'Peso:\s+(\d+)', texto)
 
-    diagnostico = re.search(r'DIAGNÓSTICO:\s+(.*?)\n', texto)
+    # Diagnóstico pode estar como DIAGNÓSTICO: ou DIAGNÓSTICOS:
+    diagnostico_match = re.search(r'DIAGN[ÓO]STICOS?:\s*\n((?:- .*\n?)+)', texto, re.IGNORECASE)
+    if diagnostico_match:
+        # Extrai todas as linhas com hífen e junta
+        linhas_diagnostico = diagnostico_match.group(1).strip().splitlines()
+        diagnostico_formatado = " / ".join([linha.strip("- ").strip() for linha in linhas_diagnostico])
+    else:
+        diagnostico_formatado = "Diagnóstico não especificado"
 
     # Mecanismo do trauma
     mecanismo = re.search(r'MECANISMO DO TRAUMA:\s*(.*)', texto)
@@ -30,7 +37,6 @@ def extrair_info(texto):
         datas_cirurgia_texto = []
         for data, medico in cirurgia_matches:
             if medico:
-                # Remove prefixo dr/dr./DR e capitaliza corretamente
                 medico_formatado = re.sub(r'(?i)^dr[.]?\s*', '', medico.strip())
                 medico_formatado = "Dr. " + medico_formatado.title()
                 datas_cirurgia_texto.append(f"{data} ({medico_formatado})")
@@ -50,7 +56,7 @@ def extrair_info(texto):
         "peso": peso.group(1) if peso else "—",
         "data_admissao": hoje,
         "data_entrevista": hoje,
-        "motivo": diagnostico.group(1).strip() if diagnostico else "",
+        "motivo": diagnostico_formatado,
         "mecanismo": mecanismo_texto,
         "data_fratura": data_fratura.group(1) if data_fratura else "-",
         "datas_cirurgia": datas_cirurgia_texto
