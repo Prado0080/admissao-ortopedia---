@@ -30,7 +30,9 @@ def extrair_info(texto):
         datas_cirurgia_texto = []
         for data, medico in cirurgia_matches:
             if medico:
-                medico_formatado = "Dr. " + medico.strip().capitalize().replace("dr. ", "").replace("dr ", "")
+                # Remove prefixo dr/dr./DR e capitaliza corretamente
+                medico_formatado = re.sub(r'(?i)^dr[.]?\s*', '', medico.strip())
+                medico_formatado = "Dr. " + medico_formatado.title()
                 datas_cirurgia_texto.append(f"{data} ({medico_formatado})")
             else:
                 datas_cirurgia_texto.append(data)
