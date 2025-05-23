@@ -7,16 +7,26 @@ st.title("Gerador de Admissão - Farmácia Clínica Ortopedia")
 
 prontuario_texto = st.text_area("Cole abaixo o texto do prontuário:", height=300)
 
+def formatar_data(data_str):
+    """Aceita datas com 2 ou 4 dígitos no ano e padroniza para dd/mm/yyyy."""
+    try:
+        if re.match(r'\d{2}/\d{2}/\d{2}$', data_str):
+            return datetime.strptime(data_str, "%d/%m/%y").strftime("%d/%m/%Y")
+        elif re.match(r'\d{2}/\d{2}/\d{4}$', data_str):
+            return datetime.strptime(data_str, "%d/%m/%Y").strftime("%d/%m/%Y")
+    except:
+        return data_str
+    return data_str
+
 def extrair_info(texto):
     paciente = re.search(r'Paciente:\s+(.*?)\t', texto)
     ses = re.search(r'SES:\s+(\d+)', texto)
     idade = re.search(r'Idade:\s+(\d+)', texto)
     peso = re.search(r'Peso:\s+(\d+)', texto)
 
-    # Diagnóstico pode estar como DIAGNÓSTICO: ou DIAGNÓSTICOS:
+    # Diagnóstico
     diagnostico_match = re.search(r'DIAGN[ÓO]STICOS?:\s*\n((?:- .*\n?)+)', texto, re.IGNORECASE)
     if diagnostico_match:
-        # Extrai todas as linhas com hífen e junta
         linhas_diagnostico = diagnostico_match.group(1).strip().splitlines()
         diagnostico_formatado = " / ".join([linha.strip("- ").strip() for linha in linhas_diagnostico])
     else:
@@ -29,24 +39,26 @@ def extrair_info(texto):
     mecanismo_texto = mecanismo.group(1).strip() if mecanismo else "mecanismo não especificado"
 
     # Data da fratura
-    data_fratura = re.search(r'DATA DA FRATURA:\s+(\d{2}/\d{2}/\d{4})', texto)
+    data_fratura_match = re.search(r'DATA DA FRATURA:\s+(\d{2}/\d{2}/\d{2,4})', texto)
+    data_fratura = formatar_data(data_fratura_match.group(1)) if data_fratura_match else "-"
 
-    # Datas da cirurgia com nome do médico (se houver)
-    cirurgia_matches = re.findall(r'DATA DA CIRURGIA:\s+(\d{2}/\d{2}/\d{4})(?:\s+\((.*?)\))?', texto)
+    # Datas da cirurgia
+    cirurgia_matches = re.findall(r'DATA DA CIRURGIA:\s+(\d{2}/\d{2}/\d{2,4})(?:\s+\((.*?)\))?', texto)
     if cirurgia_matches:
         datas_cirurgia_texto = []
         for data, medico in cirurgia_matches:
+            data_formatada = formatar_data(data)
             if medico:
                 medico_formatado = re.sub(r'(?i)^dr[.]?\s*', '', medico.strip())
                 medico_formatado = "Dr. " + medico_formatado.title()
-                datas_cirurgia_texto.append(f"{data} ({medico_formatado})")
+                datas_cirurgia_texto.append(f"{data_formatada} ({medico_formatado})")
             else:
-                datas_cirurgia_texto.append(data)
+                datas_cirurgia_texto.append(data_formatada)
         datas_cirurgia_texto = ", ".join(datas_cirurgia_texto)
     else:
         datas_cirurgia_texto = "-"
 
-    # Datas atuais
+    # Data atual formatada para admissão e entrevista
     hoje = datetime.today().strftime('%d/%m/%Y')
 
     return {
@@ -58,7 +70,7 @@ def extrair_info(texto):
         "data_entrevista": hoje,
         "motivo": diagnostico_formatado,
         "mecanismo": mecanismo_texto,
-        "data_fratura": data_fratura.group(1) if data_fratura else "-",
+        "data_fratura": data_fratura,
         "datas_cirurgia": datas_cirurgia_texto
     }
 
